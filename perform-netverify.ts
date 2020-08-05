@@ -1,4 +1,4 @@
-import https from 'https';
+import * as https from 'https';
 
 const API_TOKEN: string = process.env.API_TOKEN;
 const API_SECRET: string = process.env.API_SECRET;
