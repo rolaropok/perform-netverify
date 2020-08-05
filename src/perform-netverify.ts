@@ -24,6 +24,22 @@ interface RequestData {
   faceImage: string;
   country: string;
   idType: IDType;
+  frontsideImageMimeType?: string;
+  faceImageMimeType?: string;
+  backsideImage?: string;
+  backsideImageMimeType?: string;
+  enabledFields?: string;
+  merchantReportingCriteria?: string;
+  customerId?: string;
+  callbackUrl?: string;
+  firstName?: string;
+  lastName?: string;
+  usState?: string;
+  expiry?: string;
+  number?: string;
+  dob?: string;
+  callbackGranularity?: string;
+  personalNumber?: string;
 }
 
 const hostnames = {
