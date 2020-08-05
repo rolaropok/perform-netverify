@@ -15,7 +15,7 @@ npm run start (This will run Vue front-end)
 Here is how you can use `perform-netverify.js` in your project.
 Please copy this file to your src directory and import the library like below.
 
-```
+```js
 const performNetverify = require('PATH/perform-netverify')
 
 performNetverify({
