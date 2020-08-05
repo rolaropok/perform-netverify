@@ -5,6 +5,7 @@ This repo contains `performNetverify` client library and testing node app.
 Main client library is **`perform-netverify.js`**.
 
 Here is how you can test the project for both node and vue.
+Please note that I use node 10.15.3 for this project. client library is not related node version, but Vue front-end might have issue with node version.
 
 ```
 npm install
