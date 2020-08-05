@@ -103,11 +103,11 @@ export class NetverifyClient {
   public performNetverify(reqData: RequestData) {
     return new Promise((resolve, reject) => {
       try {
-        this.validateCredential()
+        this.validateCredential();
       } catch (error) {
         reject({
           status: 'error',
-          code: 400,
+          code: 403,
           message: error.message
         });
         return;
@@ -116,7 +116,7 @@ export class NetverifyClient {
       try {
         this.validateRequest(reqData);
       } catch (error) {
-        resolve({
+        reject({
           status: 'error',
           code: 400,
           message: error.message
@@ -147,7 +147,7 @@ export class NetverifyClient {
         res.on('end', () => {
           const response = JSON.parse(data);
           if (response.httpStatus !== 200) {
-            resolve({
+            reject({
               status: 'error',
               code: response.httpStatus,
               message: response.message
@@ -160,7 +160,7 @@ export class NetverifyClient {
           }
         })
       }).on('error', error => {
-        resolve({
+        reject({
           status: 'error',
           code: 400,
           message: error.message
