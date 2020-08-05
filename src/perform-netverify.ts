@@ -37,6 +37,7 @@ export class NetverifyClient {
   apiToken: string = '';
   apiSecret: string = '';
   region: Region = Region.US;
+  userAgent: string = '';
 
   constructor() {}
 
@@ -44,6 +45,7 @@ export class NetverifyClient {
     this.apiToken = credential.apiToken;
     this.apiSecret = credential.apiSecret;
     this.region = credential.region;
+    this.userAgent = credential.userAgent;
     return this;
   }
 
@@ -96,7 +98,8 @@ export class NetverifyClient {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
           'Content-Length': Buffer.byteLength(bodyStr),
-          'Authorization': `Basic ${authorization}`
+          'Authorization': `Basic ${authorization}`,
+          'User-Agent': this.userAgent
         }
       };
       https.request(options, res => {
