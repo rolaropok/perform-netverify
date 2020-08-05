@@ -1,4 +1,6 @@
 import * as https from 'https';
+import * as countries from './countries.json';
+import * as states from './states.json';
 var imageSize = require('image-size');
 
 export enum Region {
@@ -129,6 +131,10 @@ export class NetverifyClient {
       throw new Error('country code is required');
     }
     this.checkContentLength(data.country, 3, 'country');
+    const country = countries.filter(country => data.country === country['alpha-3']);
+    if (country.length === 0) {
+      throw new Error(`${data.country} is invalid`);
+    }
   }
 
   checkIdType(data: RequestData) {
@@ -189,7 +195,7 @@ export class NetverifyClient {
         }
 
         if (invalid) {
-          throw new Error('enabledFields has invalid string');
+          throw new Error('enabledFields has invalid field');
         }
       }
     }
@@ -226,7 +232,19 @@ export class NetverifyClient {
   }
 
   checkUsState(data: RequestData) {
-
+    if (data.usState) {
+      if (data.idType === IDType.PASSPORT || data.idType === IDType.ID_CARD) {
+        
+      } else if (data.idType === IDType.DRIVING_LICENSE) {
+        const state = data.usState.substr(data.usState.length - 2);
+        const usStates = states['US'].divisions;
+        const stateKeys = Object.keys(usStates);
+        const filter = stateKeys.filter(key => state === key.substr(key.length - 2));
+        if (filter.length === 0) {
+          throw new Error(`${data.usState} is invalid`);
+        }
+      }
+    }
   }
 
   isValidDate(dateString: string) {
