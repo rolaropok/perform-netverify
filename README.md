@@ -16,7 +16,7 @@ Here is how you can use `perform-netverify.js` in your project.
 Please copy this file to your src directory and import the library like below.
 
 ```
-const performNetverify = require('./perform-netverify');
+const performNetverify = require('PATH/perform-netverify')
 
 performNetverify({
   merchantIdScanReference: 'xxxx',
@@ -33,4 +33,23 @@ performNetverify({
 }).catch(error => {
   res.status(503).send('Service is unavailable')
 })
+```
+
+Response and Error Handling
+
+###### Successful Response
+```
+{
+  status: 'success',
+  data: {netverify json data}
+}
+```
+
+###### Error Response
+```
+{
+  status: 'error',
+  code: errorCode,
+  message: errorMessage
+}
 ```
