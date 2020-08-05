@@ -68,12 +68,35 @@ export class NetverifyClient {
     if (!data.idType) {
       throw new Error('idType is required');
     }
+  }
 
-    return null;
+  validateCredential() {
+    if (this.apiToken === '') {
+      throw new Error('apiToken is required. Please initialize the client with credentials');
+    }
+
+    if (this.apiSecret === '') {
+      throw new Error('apiSecret is required. Please initialize the client with credentials');
+    }
+
+    if (this.userAgent === '') {
+      throw new Error('userAgent is required. Please initialize the client with credentials');
+    }
   }
 
   public performNetverify(reqData: RequestData) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      try {
+        this.validateCredential()
+      } catch (error) {
+        reject({
+          status: 'error',
+          code: 400,
+          message: error.message
+        });
+        return;
+      }
+
       try {
         this.validateRequest(reqData);
       } catch (error) {

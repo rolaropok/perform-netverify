@@ -1,11 +1,13 @@
 import { Region, IDType, NetverifyClient } from './perform-netverify';
 
-const client = new NetverifyClient().initialize({
-  apiToken: 'token',
-  apiSecret: 'secret',
-  region: Region.US,
-  userAgent: 'agent'
-});
+// const client = new NetverifyClient().initialize({
+//   apiToken: 'token',
+//   apiSecret: 'secret',
+//   region: Region.US,
+//   userAgent: 'agent'
+// });
+
+const client = new NetverifyClient();
 
 client.performNetverify({
   merchantIdScanReference: 'xxxx',
