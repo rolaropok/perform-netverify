@@ -1,11 +1,13 @@
 import { default as countries } from './countries.json';
 import { default as states } from './states.json';
-var imageSize = require('image-size');
+var sizeOf = require('image-size');
 
 enum ImageType {
   JPG = 'image/jpeg',
   PNG = 'image/png'
 };
+
+
 
 export enum ErrorType {
   NONE,
@@ -27,16 +29,18 @@ export enum ErrorType {
 };
 
 export function hasValidImageSize(img: string) {
-  const buffer = Buffer.from(img.substring(img.indexOf(',') + 1));
-  if (buffer.length > 15 * 1024 * 1024) {
+  const buffer = Buffer.from(img.substring(img.indexOf(',') + 1), 'base64');
+  if (buffer.length / 4 * 3 > 15 * 1024 * 1024) {
     return ErrorType.INVALID_IMAGE_SIZE;
   } else {
-    // try {
-    //   const dimension = imageSize(new Buffer(img));
-    //   console.log('dimension - ', dimension.width, dimension.height);
-    // } catch (error) {
-    //   throw error;
-    // }
+    try {
+      const dim = sizeOf(buffer);
+      if (dim.width > 8000 || dim.height > 8000) {
+        return ErrorType.INVALID_IMAGE_DIMENSION;
+      }
+    } catch (error) {
+      return ErrorType.INVALID_IMAGE_DIMENSION;
+    }
   }
   return ErrorType.NONE;
 }
