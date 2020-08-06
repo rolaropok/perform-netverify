@@ -20,8 +20,8 @@ const client = new NetverifyClient().initialize({
 
 client.performNetverify({
   merchantIdScanReference: 'xxxx',
-  frontsideImage: 'base64',
-  faceImage: 'base64',
+  frontsideImage: 'base64 string or Buffer',
+  faceImage: 'base64 string or Buffer',
   country: 'country',
   idType: IDType.ID_CARD
 }).then(resp => {
