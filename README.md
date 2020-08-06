@@ -1,21 +1,14 @@
 # perform-netverify
 
-This repo contains `performNetverify` client library and testing node app.
+This repo contains `performNetverify` client library and implementation guide is here - [implementation-guide](https://github.com/Jumio/implementation-guides/blob/master/netverify/performNetverify.md)
 
-Main client library is **`perform-netverify.ts`**.
+npm version is available for this and you can find this here - [perform-netverify](https://www.npmjs.com/package/perform-netverify)
 
-
-```
-npm install
-npm run start
-```
-
-Here is how you can use `perform-netverify.ts` in your project.
-Please copy this file to your src directory and import the library like below.
+You can install it by **npm i perform-netverify**
 
 ```ts
 
-import { Region, IDType, NetverifyClient } from './perform-netverify';
+import { Region, IDType, NetverifyClient } from 'perform-netverify';
 
 const client = new NetverifyClient().initialize({
   apiToken: 'token',
