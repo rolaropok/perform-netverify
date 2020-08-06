@@ -1,7 +1,14 @@
 import * as https from 'https';
-import * as countries from './countries.json';
-import * as states from './states.json';
-var imageSize = require('image-size');
+import {
+  ErrorType,
+  hasValidImageSize,
+  hasValidContentLength,
+  isValidImageMimeType,
+  isValidCountryCode,
+  isValidAlpha3Code,
+  isValidState,
+  isValidDate
+} from './utils';
 
 export enum Region {
   US = 'US', EU = 'EU', SGP = 'SGP'
@@ -26,10 +33,29 @@ export enum EnabledFields {
   idAddress = 'idAddress'
 }
 
-enum ImageType {
-  JPG = 'image/jpeg',
-  PNG = 'image/png'
-}
+enum Parameters {
+  merchantIdScanReference = 'merchantIdScanReference',
+  frontsideImage = 'frontsideImage',
+  faceImage = 'faceImage',
+  country = 'country',
+  idType = 'idType',
+  frontsideImageMimeType = 'frontsideImageMimeType',
+  faceImageMimeType = 'faceImageMimeType',
+  backsideImage = 'backsideImage',
+  backsideImageMimeType = 'backsideImageMimeType',
+  enabledFields = 'enabledFields',
+  merchantReportingCriteria = 'merchantReportingCriteria',
+  customerId = 'customerId',
+  callbackUrl = 'callbackUrl',
+  firstName = 'firstName',
+  lastName = 'lastName',
+  usState = 'usState',
+  expiry = 'expiry',
+  number = 'number',
+  dob = 'dob',
+  callbackGranularity = 'callbackGranularity',
+  personalNumber = 'personalNumber'
+};
 
 interface Credential {
   apiToken: string;
@@ -85,208 +111,218 @@ export class NetverifyClient {
     return this;
   }
 
-  checkImage(img: string, key: string) {
-    const buffer = Buffer.from(img.substring(img.indexOf(',') + 1));
-    if (buffer.length > 15 * 1024 * 1024) {
-      throw new Error(`${key} size should be less than 15 MB`);
-    } else {
-      // try {
-      //   const dimension = imageSize(new Buffer(img));
-      //   console.log('dimension - ', dimension.width, dimension.height);
-      // } catch (error) {
-      //   throw error;
-      // }
+  private handleError(error: ErrorType, param?: Parameters, data?: any) {
+    switch (error) {
+      case ErrorType.MISSING_API_TOKEN:
+        throw new Error('API Token is missing');
+      case ErrorType.MISSING_API_SECRET:
+        throw new Error('API Secret is missing');
+      case ErrorType.MISSING_USER_AGENT:
+        throw new Error('User Agent is missing');
+      case ErrorType.EMPTY_CONTENT:
+        throw new Error(`${param} is required for this request`);
+      case ErrorType.INVALID_CONTENT_LENGTH:
+        throw new Error(`${param}'s length should be less than ${data}`);
+      case ErrorType.INVALID_IMAGE_SIZE:
+        throw new Error(`${param}'s size should be less than 15MB`);
+      case ErrorType.INVALID_IMAGE_DIMENSION:
+        throw new Error(`${param}'s dimension should be less than 8000px`);
+      case ErrorType.INVALID_COUNTRY_CODE:
+        throw new Error(`${data} is not valid country code`);
+      case ErrorType.INVALID_ID_TYPE:
+        throw new Error(`${param} is invalid ID type`);
+      case ErrorType.INVALID_MIME_TYPE:
+        throw new Error(`${param} should be one of image/jpeg and image/png`);
+      case ErrorType.INVALID_ENABLE_FIELD:
+        throw new Error(`${param} has invalid field - ${data}`);
+      case ErrorType.INVALID_STATE_CODE:
+        throw new Error(`${data} is invalid state code`);
+      case ErrorType.INVALID_DATE_FORMAT:
+        throw new Error(`${param} should has YYYY-MM-DD format`);
+      case ErrorType.INVALID_DATE:
+        throw new Error(`${param} is invalid date`);
+      case ErrorType.INVALID_CALLBACK_GRANULARITY:
+        throw new Error(`${param} has invalid callback granularity`);
+      default:
+        break;
     }
   }
 
-  checkContentLength(data: string, maxLength: number, key: string) {
-    if (data.length > maxLength) {
-      throw new Error(`${key}'s length should be less than ${maxLength}`);
-    }
-  }
-
-  checkMerchantIdScanReference(data: RequestData) {
+  private checkMerchantIdScanReference(data: RequestData) {
     if (!data.merchantIdScanReference) {
-      throw new Error('merchantIdScanReference is required');
+      this.handleError(ErrorType.EMPTY_CONTENT, Parameters.merchantIdScanReference);
     }
-    this.checkContentLength(data.merchantIdScanReference, 100, 'merchantIdScanReference')
+    if (!hasValidContentLength(data.merchantIdScanReference, 100)) {
+      this.handleError(ErrorType.INVALID_CONTENT_LENGTH, Parameters.merchantIdScanReference, 100);
+    }
   }
 
-  checkFrontsideImage(data: RequestData) {
+  private checkFrontsideImage(data: RequestData) {
     if (!data.frontsideImage) {
-      throw new Error('frontsideImage is required');
+      this.handleError(ErrorType.EMPTY_CONTENT, Parameters.frontsideImage);
     }
-    this.checkImage(data.frontsideImage, 'frontsideImage');
+    const error = hasValidImageSize(data.frontsideImage);
+    this.handleError(error, Parameters.frontsideImage);
   }
 
-  checkFaceImage(data: RequestData) {
+  private checkFaceImage(data: RequestData) {
     if (data.enabledFields && data.enabledFields?.indexOf(EnabledFields.idFaceMatch) > -1 && !data.faceImage) {
-      throw new Error('faceImage is required');
+      this.handleError(ErrorType.EMPTY_CONTENT, Parameters.faceImage);
     }
-    this.checkImage(data.faceImage!, 'faceImage');
+    if (data.faceImage) {
+      const error = hasValidImageSize(data.faceImage);
+      this.handleError(error, Parameters.faceImage);
+    }
   }
 
-  checkCountry(data: RequestData) {
+  private checkCountry(data: RequestData) {
     if (!data.country) {
-      throw new Error('country code is required');
+      this.handleError(ErrorType.EMPTY_CONTENT, Parameters.country);
     }
-    this.checkContentLength(data.country, 3, 'country');
-    const country = countries.filter(country => data.country === country['alpha-3']);
-    if (country.length === 0) {
-      throw new Error(`${data.country} is invalid`);
+    if (!isValidAlpha3Code(data.country)) {
+      this.handleError(ErrorType.INVALID_COUNTRY_CODE, Parameters.country, data.country);
     }
   }
 
-  checkIdType(data: RequestData) {
+  private checkIdType(data: RequestData) {
     if (!data.idType) {
-      throw new Error('idType is required');
+      this.handleError(ErrorType.EMPTY_CONTENT, Parameters.idType);
     }
     if (data.idType !== IDType.DRIVING_LICENSE && 
       data.idType !== IDType.ID_CARD &&
       data.idType !== IDType.PASSPORT &&
       data.idType !== IDType.VISA
       ) {
-        throw new Error('Invalid Id Type');
+        this.handleError(ErrorType.INVALID_ID_TYPE, Parameters.idType);
       }
   }
 
-  checkImageMimeType(type: string, key: string) {
-    if (type !== ImageType.JPG && type !== ImageType.PNG) {
-      throw new Error(`${key} should be one of image/jpeg or image/png`);
+  private checkFrontsideImageMimeType(data: RequestData) {
+    if (data.frontsideImageMimeType && !isValidImageMimeType(data.frontsideImageMimeType)) {
+      this.handleError(ErrorType.INVALID_MIME_TYPE, Parameters.frontsideImageMimeType);
     }
   }
 
-  checkFrontsideImageMimeType(data: RequestData) {
-    if (data.frontsideImageMimeType) {
-      this.checkImageMimeType(data.frontsideImageMimeType, 'frontsideImageMimeType')
+  private checkFaceImageMimeType(data: RequestData) {
+    if (data.faceImageMimeType && !isValidImageMimeType(data.faceImageMimeType)) {
+      this.handleError(ErrorType.INVALID_MIME_TYPE, Parameters.faceImageMimeType);
     }
   }
 
-  checkFaceImageMimeType(data: RequestData) {
-    if (data.faceImageMimeType) {
-      this.checkImageMimeType(data.faceImageMimeType, 'faceImageMimeType');
-    }
-  }
-
-  checkBacksideImage(data: RequestData) {
+  private checkBacksideImage(data: RequestData) {
     if (data.backsideImage) {
-      this.checkImage(data.backsideImage, 'backsideImage');
+      const error = hasValidImageSize(data.backsideImage);
+      this.handleError(error, Parameters.backsideImage);
     }
   }
 
-  checkBacksideImageMimeType(data: RequestData) {
-    if (data.backsideImageMimeType) {
-      this.checkImageMimeType(data.backsideImageMimeType, 'backsideImageMimeType');
+  private checkBacksideImageMimeType(data: RequestData) {
+    if (data.backsideImageMimeType && !isValidImageMimeType(data.backsideImageMimeType)) {
+      this.handleError(ErrorType.INVALID_MIME_TYPE, Parameters.backsideImageMimeType);
     }
   }
 
-  checkEnabledFields(data: RequestData) {
+  private checkEnabledFields(data: RequestData) {
     if (data.enabledFields) {
-      this.checkContentLength(data.enabledFields, 100, 'enabledFields');
-      const values = Object.values(EnabledFields);
-      const fields = data.enabledFields.split(',');
-      for (let index = 0; index < fields.length; index += 1) {
-        var invalid = true;
-        for (let ind = 0; ind < values.length; ind += 1) {
-          if (values[ind] === fields[index]) {
-            invalid = false;
-            break;
+      if (!hasValidContentLength(data.enabledFields, 100)) {
+        this.handleError(ErrorType.INVALID_CONTENT_LENGTH, Parameters.enabledFields, 100);
+      } else {
+        const values = Object.values(EnabledFields);
+        const fields = data.enabledFields.replace(/ /g,'').split(',');
+        for (let index = 0; index < fields.length; index += 1) {
+          var invalid = true;
+          for (let ind = 0; ind < values.length; ind += 1) {
+            if (values[ind] === fields[index]) {
+              invalid = false;
+              break;
+            }
+          }
+  
+          if (invalid) {
+            this.handleError(ErrorType.INVALID_ENABLE_FIELD, Parameters.enabledFields, fields[index]);
           }
         }
-
-        if (invalid) {
-          throw new Error('enabledFields has invalid field');
-        }
       }
     }
   }
 
-  checkMerchantReportingCriteria(data: RequestData) {
-    if (data.merchantReportingCriteria) {
-      this.checkContentLength(data.merchantReportingCriteria, 100, 'merchantReportingCriteria');
+  private checkMerchantReportingCriteria(data: RequestData) {
+    if (data.merchantReportingCriteria && !hasValidContentLength(data.merchantReportingCriteria, 100)) {
+      this.handleError(ErrorType.INVALID_CONTENT_LENGTH, Parameters.merchantReportingCriteria, 100);
     }
   }
 
-  checkCustomerId(data: RequestData) {
-    if (data.customerId) {
-      this.checkContentLength(data.customerId, 100, 'customerId');
+  private checkCustomerId(data: RequestData) {
+    if (data.customerId && !hasValidContentLength(data.customerId, 100)) {
+      this.handleError(ErrorType.INVALID_CONTENT_LENGTH, Parameters.customerId, 100);
     }
   }
 
-  checkCallbackUrl(data: RequestData) {
-    if (data.callbackUrl) {
-      this.checkContentLength(data.callbackUrl, 255, 'callbackUrl');
+  private checkCallbackUrl(data: RequestData) {
+    if (data.callbackUrl && !hasValidContentLength(data.callbackUrl, 255)) {
+      this.handleError(ErrorType.INVALID_CONTENT_LENGTH, Parameters.callbackUrl, 255);
     }
   }
 
-  checkFirstName(data: RequestData) {
-    if (data.firstName) {
-      this.checkContentLength(data.firstName, 100, 'firstName');
+  private checkFirstName(data: RequestData) {
+    if (data.firstName && !hasValidContentLength(data.firstName, 100)) {
+      this.handleError(ErrorType.INVALID_CONTENT_LENGTH, Parameters.firstName, 100);
     }
   }
 
-  checkLastName(data: RequestData) {
-    if (data.lastName) {
-      this.checkContentLength(data.lastName, 100, 'lastName');
+  private checkLastName(data: RequestData) {
+    if (data.lastName && !hasValidContentLength(data.lastName, 100)) {
+      this.handleError(ErrorType.INVALID_CONTENT_LENGTH, Parameters.lastName, 100);
     }
   }
 
-  checkUsState(data: RequestData) {
+  private checkUsState(data: RequestData) {
     if (data.usState) {
       if (data.idType === IDType.PASSPORT || data.idType === IDType.ID_CARD) {
-        
+        if (!isValidCountryCode(data.usState)) {
+          this.handleError(ErrorType.INVALID_STATE_CODE, Parameters.usState, data.usState);
+        }
       } else if (data.idType === IDType.DRIVING_LICENSE) {
-        const state = data.usState.substr(data.usState.length - 2);
-        const usStates = states['US'].divisions;
-        const stateKeys = Object.keys(usStates);
-        const filter = stateKeys.filter(key => state === key.substr(key.length - 2));
-        if (filter.length === 0) {
-          throw new Error(`${data.usState} is invalid`);
+        if (!isValidState(data.usState)) {
+          this.handleError(ErrorType.INVALID_STATE_CODE, Parameters.usState, data.usState);
         }
       }
     }
   }
 
-  isValidDate(dateString: string) {
-    var regEx = /^\d{4}-\d{2}-\d{2}$/;
-    if(!dateString.match(regEx)) return false;  // Invalid format
-    var d = new Date(dateString);
-    var dNum = d.getTime();
-    if(!dNum && dNum !== 0) return false; // NaN value, Invalid date
-    return d.toISOString().slice(0,10) === dateString;
-  }
-
-  checkExpiry(data: RequestData) {
-    if (data.expiry && this.isValidDate(data.expiry)) {
-      throw new Error('expiry is invalid date');
+  private checkExpiry(data: RequestData) {
+    if (data.expiry) {
+      const error = isValidDate(data.expiry);
+      this.handleError(error, Parameters.expiry);
     }
   }
 
-  checkNumber(data: RequestData) {
-    if (data.number) {
-      this.checkContentLength(data.number, 100, 'number');
+  private checkNumber(data: RequestData) {
+    if (data.number && !hasValidContentLength(data.number, 100)) {
+      this.handleError(ErrorType.INVALID_CONTENT_LENGTH, Parameters.number, 100);
     }
   }
 
-  checkDob(data: RequestData) {
-    if (data.dob && this.isValidDate(data.dob)) {
-      throw new Error('dob is invalid date');
+  private checkDob(data: RequestData) {
+    if (data.dob) {
+      const error = isValidDate(data.dob);
+      this.handleError(error, Parameters.dob);
     }
   }
 
-  checkCallbackGranularity(data: RequestData) {
+  private checkCallbackGranularity(data: RequestData) {
     if (data.callbackGranularity && data.callbackGranularity !== 'onFinish' && data.callbackGranularity !== 'onAllSteps') {
-      throw new Error('Invalid callbackGranularity');
+      this.handleError(ErrorType.INVALID_CALLBACK_GRANULARITY, Parameters.callbackGranularity);
     }
   }
 
-  checkPersonalNumber(data: RequestData) {
-    if (data.personalNumber) {
-      this.checkContentLength(data.personalNumber, 14, 'personalNumber');
+  private checkPersonalNumber(data: RequestData) {
+    if (data.personalNumber && !hasValidContentLength(data.personalNumber, 14)) {
+      this.handleError(ErrorType.INVALID_CONTENT_LENGTH, Parameters.personalNumber, 14);
     }
   }
 
-  validateRequest(data: RequestData) {
+  private validateRequest(data: RequestData) {
     this.checkMerchantIdScanReference(data);
     this.checkFrontsideImage(data);
     this.checkFaceImage(data);
@@ -310,17 +346,17 @@ export class NetverifyClient {
     this.checkPersonalNumber(data);
   }
 
-  validateCredential() {
+  private validateCredential() {
     if (this.apiToken === '') {
-      throw new Error('apiToken is required. Please initialize the client with credentials');
+      this.handleError(ErrorType.MISSING_API_TOKEN);
     }
 
     if (this.apiSecret === '') {
-      throw new Error('apiSecret is required. Please initialize the client with credentials');
+      this.handleError(ErrorType.MISSING_API_SECRET);
     }
 
     if (this.userAgent === '') {
-      throw new Error('userAgent is required. Please initialize the client with credentials');
+      this.handleError(ErrorType.MISSING_USER_AGENT);
     }
   }
 
