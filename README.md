@@ -4,7 +4,8 @@ This repo contains `performNetverify` client library and implementation guide is
 
 npm version is available for this and you can find this here - [perform-netverify](https://www.npmjs.com/package/perform-netverify)
 
-You can install it by **npm i perform-netverify**
+- You can install it by **npm i perform-netverify**
+- If you need to install locally, please make sure you have all files (index.ts, countries.json, states.json, utils.ts). Also please add [image-size](https://github.com/image-size/image-size) package as dependency.
 
 ```ts
 
