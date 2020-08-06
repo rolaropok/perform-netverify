@@ -28,8 +28,7 @@ export enum ErrorType {
   INVALID_CALLBACK_GRANULARITY
 };
 
-export function hasValidImageSize(img: string) {
-  const buffer = Buffer.from(img.substring(img.indexOf(',') + 1), 'base64');
+function checkImageBuffer(buffer: Buffer) {
   if (buffer.length / 4 * 3 > 15 * 1024 * 1024) {
     return ErrorType.INVALID_IMAGE_SIZE;
   } else {
@@ -43,6 +42,15 @@ export function hasValidImageSize(img: string) {
     }
   }
   return ErrorType.NONE;
+}
+
+export function hasValidImageSize(img: string | Buffer) {
+  if (typeof img === 'string') {
+    const buffer = Buffer.from(img.substring(img.indexOf(',') + 1), 'base64');
+    return checkImageBuffer(buffer);
+  } else {
+    return checkImageBuffer(img);
+  }
 }
 
 export function hasValidContentLength(data: string, maxLength: number) {

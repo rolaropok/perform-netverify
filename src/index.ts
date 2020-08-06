@@ -67,12 +67,12 @@ interface Credential {
 interface RequestData {
   merchantIdScanReference: string;
   frontsideImage: string;
-  faceImage?: string;
+  faceImage?: string | Buffer;
   country: string;
   idType: IDType;
   frontsideImageMimeType?: string;
   faceImageMimeType?: string;
-  backsideImage?: string;
+  backsideImage?: string | Buffer;
   backsideImageMimeType?: string;
   enabledFields?: string;
   merchantReportingCriteria?: string;
